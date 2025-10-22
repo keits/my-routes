@@ -7,27 +7,41 @@
     body {
       font-family: "Microsoft JhengHei", sans-serif;
       background: #f0f4f8;
-      text-align: center;
       padding: 20px;
+      line-height: 1.6;
     }
-    h1 { color: #2c3e50; }
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+      margin-bottom: 30px;
+    }
+    h2 {
+      color: #34495e;
+      margin-top: 40px;
+      margin-bottom: 15px;
+      border-left: 6px solid #3498db;
+      padding-left: 10px;
+    }
     .city {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
       gap: 20px;
-      max-width: 600px;
-      margin: 0 auto;
+      margin-bottom: 30px;
     }
     .building {
       background: #3498db;
       color: white;
-      padding: 20px;
+      padding: 18px;
       border-radius: 12px;
       text-decoration: none;
       font-size: 16px;
       font-weight: bold;
       box-shadow: 0 4px 6px rgba(0,0,0,0.2);
       transition: transform 0.2s, background 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
     }
     .building:hover {
       background: #2980b9;
@@ -37,11 +51,30 @@
 </head>
 <body>
   <h1>🏙️ 我的導航城市</h1>
-  <div class="city">
-    <a class="building" href="https://www.google.com/maps/dir/?api=1&origin=台北車站&destination=台中車站&travelmode=driving" target="_blank">🚗 台北 → 台中</a>
-    <a class="building" href="https://www.google.com/maps/dir/?api=1&origin=家&destination=公司&travelmode=driving" target="_blank">🏢 家 → 公司</a>
-    <a class="building" href="https://www.google.com/maps/dir/?api=1&origin=公司&destination=健身房&travelmode=walking" target="_blank">🏃 公司 → 健身房</a>
-    <a class="building" href="https://www.google.com/maps/dir/?api=1&origin=家&destination=夜市&travelmode=walking" target="_blank">🌙 家 → 夜市</a>
+
+  <!-- 台北路線 -->
+  <h2>🌆 台北</h2>
+  <div class="city" id="taipei">
+    <a class="building" 
+       href="https://www.google.com/maps/dir/?api=1&origin=台北車站&destination=台北101&travelmode=transit" 
+       target="_blank">🚇 台北車站 → 台北101</a>
+
+    <a class="building" 
+       href="https://www.google.com/maps/dir/?api=1&origin=士林夜市&destination=饒河夜市&travelmode=driving" 
+       target="_blank">🚗 士林夜市 → 饒河夜市</a>
   </div>
+
+  <!-- 台中路線 -->
+  <h2>🏞️ 台中</h2>
+  <div class="city" id="taichung">
+    <a class="building" 
+       href="https://www.google.com/maps/dir/?api=1&origin=台中車站&destination=逢甲夜市&travelmode=transit" 
+       target="_blank">🚌 台中車站 → 逢甲夜市</a>
+
+    <a class="building" 
+       href="https://www.google.com/maps/dir/?api=1&origin=台中公園&destination=高美濕地&travelmode=driving" 
+       target="_blank">🚗 台中公園 → 高美濕地</a>
+  </div>
+
 </body>
 </html>
