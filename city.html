@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>🏙️ 我的導航城市</title>
+  <style>
+    body {
+      font-family: "Microsoft JhengHei", sans-serif;
+      background: #f0f4f8;
+      text-align: center;
+      padding: 20px;
+    }
+    h1 { color: #2c3e50; }
+    .city {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 20px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .building {
+      background: #3498db;
+      color: white;
+      padding: 20px;
+      border-radius: 12px;
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: bold;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+      transition: transform 0.2s, background 0.2s;
+    }
+    .building:hover {
+      background: #2980b9;
+      transform: translateY(-5px);
+    }
+  </style>
+</head>
+<body>
+  <h1>🏙️ 我的導航城市</h1>
+  <div class="city">
+    <a class="building" href="https://www.google.com/maps/dir/?api=1&origin=台北車站&destination=台中車站&travelmode=driving" target="_blank">🚗 台北 → 台中</a>
+    <a class="building" href="https://www.google.com/maps/dir/?api=1&origin=家&destination=公司&travelmode=driving" target="_blank">🏢 家 → 公司</a>
+    <a class="building" href="https://www.google.com/maps/dir/?api=1&origin=公司&destination=健身房&travelmode=walking" target="_blank">🏃 公司 → 健身房</a>
+    <a class="building" href="https://www.google.com/maps/dir/?api=1&origin=家&destination=夜市&travelmode=walking" target="_blank">🌙 家 → 夜市</a>
+  </div>
+</body>
+</html>
