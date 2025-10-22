@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>卡片式導航編輯器（穩定版）</title>
+  <style>
+    body { font-family: "Microsoft JhengHei", sans-serif; padding: 20px; background: #f8f9fa; }
+    .btn { padding: 8px 16px; margin: 10px 5px; cursor: pointer; background: #3498db; color: white; border: none; border-radius: 6px; }
+    .btn:hover { background: #2980b9; }
+    .card { background: white; border: 1px solid #ccc; border-radius: 10px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); cursor: move; }
+    .card input, .card select { width: 100%; padding: 6px; margin-top: 6px; margin-bottom: 10px; font-size: 14px; }
+    .card .delete { background: #e74c3c; }
+    .card .delete:hover { background: #c0392b; }
+    iframe { width: 100%; height: 500px; border: 1px solid #ccc; margin-top: 20px; background: white; }
+    #cardContainer { display: flex; flex-direction: column; gap: 10px; }
+    textarea { width: 100%; height: 120px; margin-top: 10px; font-size: 14px; padding: 8px; }
+  </style>
+</head>
+<body>
+  <h1>🏙️ 卡片式導航編輯器（穩定版）</h1>
+
+  <input type="file" id="fileInput" accept=".html">
+  <button class="btn" onclick="addCard()">➕ 新增路線</button>
+  <button class="btn" onclick="saveDraft()">💾 儲存草稿</button>
+  <button class="btn" onclick="loadDraft()">📂 載入草稿</button>
+  <button class="btn" onclick="clearDraft()">🗑️ 清除草稿</button>
+  <button class="btn" onclick="generate()">💾 下載 index.html</button>
+
+  <h2>🚀 快速插入常用路線</h2>
+  <div>
+    <button class="btn" onclick="insertPreset('https://maps.app.goo.gl/nmxdUYvYJYP3Hnso6','公司 → 家','🏢','work')">🏢 公司 → 🏠 家</button>
+    <button class="btn" onclick="insertPreset('https://maps.app.goo.gl/abc123','台北車站 → 台北101','🚉','travel')">🚉 台北車站 → 🏙️ 台北101</button>
+    <button class="btn" onclick="insertPreset('https://maps.app.goo.gl/xyz456','午餐地點','🍜','food')">🍜 午餐地點</button>
+  </div>
+
+  <h2>📋 批次貼上路線</h2>
+  <textarea id="bulkInput" placeholder="每行格式：名稱,連結,emoji,分區"></textarea>
+  <button class="btn" onclick="parseBulk()">📥 匯入路線</button>
+
+  <div id="cardContainer"></div>
+  <iframe id="previewFrame" sandbox="allow-scripts"></iframe>
+<script>
+let originalHtml = "";
+let sections = [];
+const sectionLabels = {
+  taipei: "🌆 台北", taichung: "🏞️ 台中", kaohsiung: "🌇 高雄",
+  work: "💼 工作", leisure: "🎉 休閒", travel: "✈️ 旅行",
+  food: "🍜 美食", sports: "⚽ 運動", shopping: "🛍️ 購物",
+  medical: "🏥 醫療", education: "🏫 教育", relax: "🏖️ 休養",
+  social: "🧑‍🤝‍🧑 聚會", frequent: "🧭 常用", todo: "🧹 代辦", business: "🧳 出差"
+};
+
+document.getElementById('fileInput').addEventListener('change', function(e) {
+  const reader = new FileReader();
+  reader.onload = function(event) {
+    originalHtml = event.target.result;
+    const doc = new DOMParser().parseFromString(originalHtml, "text/html");
+    sections = Array.from(doc.querySelectorAll("div.city[id]")).map(div => div.id);
+    if (sections.length === 0) {
+      sections = ["work", "food", "travel"];
+      alert("⚠️ index.html 未偵測到分區，已載入預設分區");
+    } else {
+      alert("✅ index.html 已讀取完成！");
+    }
+    updatePreview();
+  };
+  reader.readAsText(e.target.files[0]);
+});
+
+function addCard(data = {}) {
+  const container = document.getElementById("cardContainer");
+  const card = document.createElement("div");
+  card.className = "card";
+  card.draggable = true;
+
+  card.addEventListener("dragstart", e => {
+    e.dataTransfer.setData("text/plain", [...container.children].indexOf(card));
+    card.classList.add("dragging");
+  });
+  card.addEventListener("dragend", () => card.classList.remove("dragging"));
+
+  let options = sections.map(s => {
+    const label = sectionLabels[s] || s;
+    return `<option value="${s}" ${data.section === s ? "selected" : ""}>${label}</option>`;
+  }).join("");
+
+  card.innerHTML = `
+    <input type="text" placeholder="Google Maps 連結" value="${data.url || ""}" oninput="updatePreview()">
+    <input type="text" placeholder="名稱（例如：家 → 公司）" value="${data.name || ""}" oninput="autoEmoji(this); updatePreview()">
+    <input type="text" placeholder="Emoji（例如 🚗）" value="${data.emoji || ""}" oninput="updatePreview()">
+    <select onchange="updatePreview()">${options}</select>
+    <button class="btn delete" onclick="this.parentElement.remove(); updatePreview()">❌ 刪除</button>
+  `;
+  container.appendChild(card);
+}
+
+function insertPreset(url, name, emoji, section) {
+  addCard({ url, name, emoji, section });
+  updatePreview();
+}
+
+function autoEmoji(nameInput) {
+  const emojiInput = nameInput.nextElementSibling;
+  if (emojiInput.value.trim()) return;
+  const name = nameInput.value;
+  const map = {
+    "夜市": "🍢", "美術館": "🖼️", "車站": "🚉", "機場": "✈️", "公園": "🌳",
+    "百貨": "🛍️", "學校": "🏫", "醫院": "🏥", "海邊": "🏖️", "飯店": "🏨",
+    "公司": "🏢", "家": "🏠", "運動": "⚽", "旅行": "✈️", "聚會": "🧑‍🤝‍🧑"
+  };
+  for (const key in map) {
+    if (name.includes(key)) {
+      emojiInput.value = map[key];
+      break;
+    }
+  }
+}
+
+function parseBulk() {
+  const lines = document.getElementById("bulkInput").value.trim().split("\n");
+  lines.forEach(line => {
+    const [name, url, emoji, section] = line.split(",");
+    if (name && url && section) {
+      addCard({ name: name.trim(), url: url.trim(), emoji: emoji?.trim() || "", section: section.trim() });
+    }
+  });
+  updatePreview();
+}
+
+function saveDraft() {
+  const cards = document.querySelectorAll(".card");
+  let draft = [];
+  cards.forEach(card => {
+    const inputs = card.querySelectorAll("input, select");
+    draft.push({
+      url: inputs[0].value,
+      name: inputs[1].value,
+      emoji: inputs[2].value,
+      section: inputs[3].value
+    });
+  });
+  localStorage.setItem("cardDraft", JSON.stringify(draft));
+  alert("✅ 草稿已儲存！");
+}
+
+function loadDraft() {
+  const draft = JSON.parse(localStorage.getItem("cardDraft") || "[]");
+  if (draft.length === 0) {
+    alert("⚠️ 沒有儲存的草稿！");
+    return;
+  }
+  document.getElementById("cardContainer").innerHTML = "";
+  draft.forEach(data => addCard(data));
+  updatePreview();
+}
+
+function clearDraft() {
+  localStorage.removeItem("cardDraft");
+  alert("🗑️ 草稿已清除！");
+}
+
+function buildUpdatedHtml() {
+  let sectionButtons = {};
+  sections.forEach(s => sectionButtons[s] = "");
+  const cards = document.querySelectorAll(".card");
+
+  cards.forEach(card => {
+    const inputs = card.querySelectorAll("input, select");
+    const url = inputs[0].value.trim();
+    const name = inputs[1].value.trim();
+    const emoji = inputs[2].value.trim() || "📍";
+    const section = inputs[3].value;
+    if (url && name && section) {
+      const button = `<a class="building" href="${url}" target="_blank">${emoji} ${name}</a>\n`;
+      sectionButtons[section] += button;
+    }
+  });
+
+  let updatedHtml = originalHtml || generateBlankHtml();
+  for (const sec of sections) {
+    const regex = new RegExp(`(<div class="city" id="${sec}">)([\\s\\S]*?)(</div>)`, "i");
+    updatedHtml = updatedHtml.replace(regex, `$1\n${sectionButtons[sec]}$3`);
+  }
+  return updatedHtml;
+}
+
+function generateBlankHtml() {
+  return `
+    <html><head><title>預覽</title></head><body>
+    ${sections.map(s => `<h2>${sectionLabels[s] || s}</h2><div class="city" id="${s}"></div>`).join("\n")}
+    </body></html>
+  `;
+}
+
+function updatePreview() {
+  const html = buildUpdatedHtml();
+  document.getElementById("previewFrame").srcdoc = html;
+}
+
+function generate() {
+  const html = buildUpdatedHtml();
+  const blob = new Blob([html], { type: "text/html" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "index.html";
+  a.click();
+}
+</script>
+</body>
+</html>
